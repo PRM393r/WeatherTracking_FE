@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "533635509872",
+    "project_id": "weathertracking-su26",
+    "storage_bucket": "weathertracking-su26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:533635509872:android:d93a41e6cf15bc82ddceb5",
+        "android_client_info": {
+          "package_name": "com.fpt.weather_tracking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "533635509872-e2rjni93k6p6b9dhkh6or3fiipqhgh9e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsLU9R05Gn7yqfyDZ8IA0hEFHpqG7krW8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "533635509872-e2rjni93k6p6b9dhkh6or3fiipqhgh9e.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "533635509872-qradgctbcvtcl2bhs6g8ujpfs6tpgasg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.fpt.weathertracking"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
