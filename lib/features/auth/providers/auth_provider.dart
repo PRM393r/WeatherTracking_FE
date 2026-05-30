@@ -1,28 +1,106 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final authStateProvider = StreamProvider<User?>((ref) {
-  return FirebaseAuth.instance.authStateChanges();
+import '../../../core/repositories/i_auth_repository.dart';
+import '../entities/user_entity.dart';
+import '../repositories/firebase_auth_repository.dart';
+
+final authRepositoryProvider = Provider<IAuthRepository>((ref) {
+  return FirebaseAuthRepository();
 });
 
-final authProvider = Provider<AuthNotifier>((ref) => AuthNotifier());
+final authStateProvider = StreamProvider<UserEntity?>((ref) {
+  return ref.watch(authRepositoryProvider).authStateChanges();
+});
 
-class AuthNotifier {
-  final _auth = FirebaseAuth.instance;
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AuthControllerState>((ref) {
+      return AuthController(ref.watch(authRepositoryProvider));
+    });
 
-  Future<void> signUp({required String email, required String password}) async {
-    await _auth.createUserWithEmailAndPassword(email: email, password: password);
+class AuthControllerState {
+  const AuthControllerState({this.isLoading = false, this.errorMessage});
+
+  final bool isLoading;
+  final String? errorMessage;
+
+  AuthControllerState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return AuthControllerState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    );
+  }
+}
+
+class AuthController extends StateNotifier<AuthControllerState> {
+  AuthController(this._authRepository) : super(const AuthControllerState());
+
+  final IAuthRepository _authRepository;
+
+  Future<bool> signIn({required String email, required String password}) {
+    return _runAuthAction(
+      () => _authRepository.signIn(email: email, password: password),
+    );
   }
 
-  Future<void> signIn({required String email, required String password}) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+  Future<bool> signInWithGoogle() {
+    return _runAuthAction(_authRepository.signInWithGoogle);
+  }
+
+  Future<bool> signUp({required String email, required String password}) {
+    return _runAuthAction(
+      () => _authRepository.signUp(email: email, password: password),
+    );
+  }
+
+  Future<bool> resetPassword(String email) {
+    return _runAuthAction(() => _authRepository.resetPassword(email));
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _authRepository.signOut();
+      state = const AuthControllerState();
+    } on Exception catch (error) {
+      state = AuthControllerState(errorMessage: _friendlyError(error));
+    }
   }
 
-  Future<void> resetPassword(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+  Future<bool> _runAuthAction(Future<void> Function() action) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await action();
+      state = const AuthControllerState();
+      return true;
+    } on AuthCancelledException {
+      state = const AuthControllerState();
+      return false;
+    } on Exception catch (error) {
+      state = AuthControllerState(errorMessage: _friendlyError(error));
+      return false;
+    }
+  }
+
+  String _friendlyError(Object error) {
+    final raw = error.toString();
+    if (raw.contains('user-not-found') ||
+        raw.contains('wrong-password') ||
+        raw.contains('invalid-credential')) {
+      return 'Email hoặc mật khẩu không đúng.';
+    }
+    if (raw.contains('email-already-in-use')) {
+      return 'Email này đã được đăng ký.';
+    }
+    if (raw.contains('weak-password')) return 'Mật khẩu quá yếu.';
+    if (raw.contains('invalid-email')) return 'Email không hợp lệ.';
+    if (raw.contains('too-many-requests')) {
+      return 'Quá nhiều lần thử. Vui lòng thử lại sau.';
+    }
+    if (raw.contains('network')) return 'Lỗi kết nối mạng.';
+    return 'Thao tác thất bại. Vui lòng thử lại.';
   }
 }
