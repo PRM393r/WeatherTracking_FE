@@ -8,14 +8,13 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
-  bool _loading = false;
   bool _sent = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -26,22 +25,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   Future<void> _send() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error = 'Nhập email hợp lệ');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nhập email hợp lệ')));
       return;
     }
-    setState(() { _loading = true; _error = null; });
-    try {
-      await ref.read(authProvider).resetPassword(email);
-      if (mounted) setState(() => _sent = true);
-    } on Exception catch (_) {
-      setState(() => _error = 'Gửi thất bại. Kiểm tra lại email.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .resetPassword(email);
+    if (success && mounted) setState(() => _sent = true);
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: AppBar(
@@ -72,7 +69,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'Quên mật\nkhẩu?',
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(height: 1.1),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.displayLarge?.copyWith(height: 1.1),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -115,26 +114,36 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email'),
                 ),
-                if (_error != null) ...[
+                if (authState.errorMessage != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.blockCoral,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(_error!, style: Theme.of(context).textTheme.bodyMedium),
+                    child: Text(
+                      authState.errorMessage!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _loading ? null : _send,
-                    child: _loading
+                    onPressed: authState.isLoading ? null : _send,
+                    child: authState.isLoading
                         ? const SizedBox(
-                            height: 20, width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.canvas),
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.canvas,
+                            ),
                           )
                         : const Text('Gửi link đặt lại'),
                   ),
