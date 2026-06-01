@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../location/providers/location_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -10,6 +11,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(authStateProvider);
     final authState = ref.watch(authControllerProvider);
+    final locationAsync = ref.watch(currentLocationProvider);
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: userAsync.when(
@@ -55,6 +57,25 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
+                locationAsync.when(
+                  loading: () => _LocationStatusCard(
+                    title: 'Đang lấy vị trí',
+                    body: 'Kiểm tra GPS và quyền truy cập vị trí...',
+                    color: AppColors.blockRain,
+                  ),
+                  error: (error, _) => _LocationStatusCard(
+                    title: 'Chưa lấy được vị trí',
+                    body: _locationErrorMessage(error),
+                    color: AppColors.blockCoral,
+                  ),
+                  data: (location) => _LocationStatusCard(
+                    title: location.displayName,
+                    body:
+                        '${location.lat.toStringAsFixed(4)}, ${location.lng.toStringAsFixed(4)}',
+                    color: AppColors.blockRain,
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -100,6 +121,50 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  String _locationErrorMessage(Object error) {
+    final raw = error.toString();
+    if (raw.contains('serviceDisabled')) return 'Dịch vụ vị trí đang tắt.';
+    if (raw.contains('permissionPermanentlyDenied')) {
+      return 'Quyền vị trí đã bị chặn trong cài đặt.';
+    }
+    if (raw.contains('permissionDenied')) {
+      return 'Ứng dụng chưa được cấp quyền vị trí.';
+    }
+    if (raw.contains('timeout')) return 'Không lấy được vị trí trong 10 giây.';
+    return 'Không thể xác định vị trí hiện tại.';
+  }
+}
+
+class _LocationStatusCard extends StatelessWidget {
+  const _LocationStatusCard({
+    required this.title,
+    required this.body,
+    required this.color,
+  });
+
+  final String title;
+  final String body;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(body, style: Theme.of(context).textTheme.bodyMedium),
+        ],
       ),
     );
   }
