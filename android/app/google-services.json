@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "533635509872-amo1j88ekujotn8h0k41pvcj3q71uqd8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fpt.weather_tracking",
+            "certificate_hash": "add4399bfec48a08ec65ab2b0b82751b71f8de8b"
+          }
+        },
+        {
           "client_id": "533635509872-e2rjni93k6p6b9dhkh6or3fiipqhgh9e.apps.googleusercontent.com",
           "client_type": 3
         }

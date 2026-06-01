@@ -100,6 +100,9 @@ class AuthController extends StateNotifier<AuthControllerState> {
     if (raw.contains('too-many-requests')) {
       return 'Quá nhiều lần thử. Vui lòng thử lại sau.';
     }
+    if (raw.contains('ApiException: 10') || raw.contains('DEVELOPER_ERROR')) {
+      return 'Google Sign-In chưa được cấu hình SHA-1. Hãy thêm SHA-1 vào Firebase rồi tải lại google-services.json.';
+    }
     if (raw.contains('network')) return 'Lỗi kết nối mạng.';
     return 'Thao tác thất bại. Vui lòng thử lại.';
   }
