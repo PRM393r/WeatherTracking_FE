@@ -18,8 +18,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmCtrl = TextEditingController();
   bool _obscurePass = true;
   bool _obscureConfirm = true;
-  bool _loading = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -31,30 +29,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
-    try {
-      await ref.read(authProvider).signUp(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-      );
-      if (mounted) context.go('/home');
-    } on Exception catch (e) {
-      setState(() { _error = _friendlyError(e.toString()); });
-    } finally {
-      if (mounted) setState(() { _loading = false; });
-    }
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .signUp(email: _emailCtrl.text.trim(), password: _passCtrl.text);
+    if (success && mounted) context.go('/home');
   }
 
-  String _friendlyError(String raw) {
-    if (raw.contains('email-already-in-use')) return 'Email này đã được đăng ký.';
-    if (raw.contains('weak-password')) return 'Mật khẩu quá yếu.';
-    if (raw.contains('invalid-email')) return 'Email không hợp lệ.';
-    if (raw.contains('network')) return 'Lỗi kết nối mạng.';
-    return 'Đăng ký thất bại. Vui lòng thử lại.';
+  Future<void> _registerWithGoogle() async {
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .signInWithGoogle();
+    if (success && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
@@ -74,13 +64,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('🌤️', style: Theme.of(context).textTheme.displayLarge),
+                    Text(
+                      '🌤️',
+                      style: Theme.of(context).textTheme.displayLarge,
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       'Tạo tài\nkhoản',
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        height: 1.1,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.displayLarge?.copyWith(height: 1.1),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -114,8 +107,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       decoration: InputDecoration(
                         labelText: 'Mật khẩu',
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                          icon: Icon(
+                            _obscurePass
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () =>
+                              setState(() => _obscurePass = !_obscurePass),
                         ),
                       ),
                       validator: (v) {
@@ -131,8 +129,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       decoration: InputDecoration(
                         labelText: 'Xác nhận mật khẩu',
                         suffixIcon: IconButton(
-                          icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureConfirm = !_obscureConfirm,
+                          ),
                         ),
                       ),
                       validator: (v) {
@@ -140,30 +144,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         return null;
                       },
                     ),
-                    if (_error != null) ...[
+                    if (authState.errorMessage != null) ...[
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.blockCoral,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(_error!, style: Theme.of(context).textTheme.bodyMedium),
+                        child: Text(
+                          authState.errorMessage!,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _loading ? null : _register,
-                        child: _loading
+                        onPressed: authState.isLoading ? null : _register,
+                        child: authState.isLoading
                             ? const SizedBox(
-                                height: 20, width: 20,
+                                height: 20,
+                                width: 20,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.canvas,
+                                  strokeWidth: 2,
+                                  color: AppColors.canvas,
                                 ),
                               )
                             : const Text('Đăng ký'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: authState.isLoading
+                            ? null
+                            : _registerWithGoogle,
+                        child: const Text('Tiếp tục với Google'),
                       ),
                     ),
                     const SizedBox(height: 16),

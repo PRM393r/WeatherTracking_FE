@@ -16,8 +16,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _loading = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -28,31 +26,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
-    try {
-      await ref.read(authProvider).signIn(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-      );
-      if (mounted) context.go('/home');
-    } on Exception catch (e) {
-      setState(() { _error = _friendlyError(e.toString()); });
-    } finally {
-      if (mounted) setState(() { _loading = false; });
-    }
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .signIn(email: _emailCtrl.text.trim(), password: _passCtrl.text);
+    if (success && mounted) context.go('/home');
   }
 
-  String _friendlyError(String raw) {
-    if (raw.contains('user-not-found') || raw.contains('wrong-password') || raw.contains('invalid-credential')) {
-      return 'Email hoặc mật khẩu không đúng.';
-    }
-    if (raw.contains('too-many-requests')) return 'Quá nhiều lần thử. Vui lòng thử lại sau.';
-    if (raw.contains('network')) return 'Lỗi kết nối mạng.';
-    return 'Đăng nhập thất bại. Vui lòng thử lại.';
+  Future<void> _loginWithGoogle() async {
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .signInWithGoogle();
+    if (success && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
@@ -76,9 +65,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'Chào mừng\ntrở lại',
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        height: 1.1,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.displayLarge?.copyWith(height: 1.1),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -112,7 +101,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       decoration: InputDecoration(
                         labelText: 'Mật khẩu',
                         suffixIcon: IconButton(
-                          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                          icon: Icon(
+                            _obscure ? Icons.visibility_off : Icons.visibility,
+                          ),
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
@@ -122,15 +113,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         return null;
                       },
                     ),
-                    if (_error != null) ...[
+                    if (authState.errorMessage != null) ...[
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.blockCoral,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(_error!, style: Theme.of(context).textTheme.bodyMedium),
+                        child: Text(
+                          authState.errorMessage!,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 8),
@@ -145,12 +142,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _loading ? null : _login,
-                        child: _loading
+                        onPressed: authState.isLoading ? null : _login,
+                        child: authState.isLoading
                             ? const SizedBox(
-                                height: 20, width: 20,
+                                height: 20,
+                                width: 20,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.canvas,
+                                  strokeWidth: 2,
+                                  color: AppColors.canvas,
                                 ),
                               )
                             : const Text('Đăng nhập'),
@@ -176,6 +175,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
               ),
               const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: authState.isLoading ? null : _loginWithGoogle,
+                  child: const Text('Đăng nhập với Google'),
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
