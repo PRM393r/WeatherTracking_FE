@@ -70,6 +70,25 @@ void main() {
       'Email hoặc mật khẩu không đúng.',
     );
   });
+
+  test('authController explains missing Google SHA-1 config', () async {
+    final fakeRepository = _FakeAuthRepository()..shouldFailGoogleSignIn = true;
+    final container = ProviderContainer(
+      overrides: [authRepositoryProvider.overrideWithValue(fakeRepository)],
+    );
+    addTearDown(container.dispose);
+    addTearDown(fakeRepository.dispose);
+
+    final success = await container
+        .read(authControllerProvider.notifier)
+        .signInWithGoogle();
+
+    expect(success, isFalse);
+    expect(
+      container.read(authControllerProvider).errorMessage,
+      'Google Sign-In chưa được cấu hình SHA-1. Hãy thêm SHA-1 vào Firebase rồi tải lại google-services.json.',
+    );
+  });
 }
 
 const _testUser = UserEntity(
@@ -86,6 +105,7 @@ class _FakeAuthRepository implements IAuthRepository {
 
   UserEntity? _currentUser;
   bool shouldFailSignIn = false;
+  bool shouldFailGoogleSignIn = false;
 
   void emit(UserEntity? user) {
     _currentUser = user;
@@ -115,6 +135,9 @@ class _FakeAuthRepository implements IAuthRepository {
 
   @override
   Future<UserEntity> signInWithGoogle() async {
+    if (shouldFailGoogleSignIn) {
+      throw Exception('ApiException: 10: DEVELOPER_ERROR');
+    }
     emit(_testUser);
     return _testUser;
   }
