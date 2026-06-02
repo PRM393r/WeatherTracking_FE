@@ -1,209 +1,234 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../providers/auth_provider.dart';
-import '../../../core/theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/auth_widgets.dart';
 
-class RegisterScreen extends ConsumerStatefulWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  final _confirmCtrl = TextEditingController();
-  bool _obscurePass = true;
-  bool _obscureConfirm = true;
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    _confirmCtrl.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
-    final success = await ref
-        .read(authControllerProvider.notifier)
-        .signUp(email: _emailCtrl.text.trim(), password: _passCtrl.text);
-    if (success && mounted) context.go('/home');
-  }
-
-  Future<void> _registerWithGoogle() async {
-    final success = await ref
-        .read(authControllerProvider.notifier)
-        .signInWithGoogle();
-    if (success && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authControllerProvider);
     return Scaffold(
-      backgroundColor: AppColors.canvas,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 64),
-              // Color block — mint for register (positive/new)
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: AppColors.blockMint,
-                  borderRadius: BorderRadius.circular(24),
-                ),
+      backgroundColor: AuthTheme.backgroundColor,
+      body: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          if (details.primaryDelta! > 10) {
+            Navigator.pop(context);
+          }
+        },
+        child: Stack(
+          children: [
+            const AnimatedWeatherBackground(),
+            const MountainSeaBackground(),
+            SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      '🌤️',
-                      style: Theme.of(context).textTheme.displayLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Tạo tài\nkhoản',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.displayLarge?.copyWith(height: 1.1),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Bắt đầu theo dõi thời tiết của bạn',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.ink.withValues(alpha: 0.65),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Nhập email';
-                        if (!v.contains('@')) return 'Email không hợp lệ';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passCtrl,
-                      obscureText: _obscurePass,
-                      decoration: InputDecoration(
-                        labelText: 'Mật khẩu',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePass
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscurePass = !_obscurePass),
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Nhập mật khẩu';
-                        if (v.length < 6) return 'Ít nhất 6 ký tự';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _confirmCtrl,
-                      obscureText: _obscureConfirm,
-                      decoration: InputDecoration(
-                        labelText: 'Xác nhận mật khẩu',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirm
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () => setState(
-                            () => _obscureConfirm = !_obscureConfirm,
-                          ),
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v != _passCtrl.text) return 'Mật khẩu không khớp';
-                        return null;
-                      },
-                    ),
-                    if (authState.errorMessage != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.blockCoral,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          authState.errorMessage!,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                    ],
+                    const _RegisterHeader(),
                     const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: authState.isLoading ? null : _register,
-                        child: authState.isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.canvas,
-                                ),
-                              )
-                            : const Text('Đăng ký'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: authState.isLoading
-                            ? null
-                            : _registerWithGoogle,
-                        child: const Text('Tiếp tục với Google'),
-                      ),
-                    ),
+                    _buildForm(),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: () => context.go('/login'),
-                        child: const Text('Đã có tài khoản? Đăng nhập'),
-                      ),
-                    ),
-                  ],
+                    _buildActions(),
+                    const SizedBox(height: 24),
+                    const _RegisterFooter(),
+                  ].animate(interval: 100.ms).fade(duration: 500.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad),
                 ),
               ),
-              const SizedBox(height: 48),
-            ],
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, left: 16),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AuthTheme.primaryAccent),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Column(
+      children: [
+        SoftTextField(
+          controller: _nameController,
+          hintText: 'Full Name',
+          prefixIcon: Icons.person_outline_rounded,
+        ),
+        const SizedBox(height: 16),
+        SoftTextField(
+          controller: _emailController,
+          hintText: 'Email',
+          prefixIcon: Icons.mail_outline_rounded,
+        ),
+        const SizedBox(height: 16),
+        SoftTextField(
+          controller: _passwordController,
+          hintText: 'Password',
+          prefixIcon: Icons.lock_outline_rounded,
+          obscureText: _obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              color: AuthTheme.hintColor,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
           ),
         ),
-      ),
+        const SizedBox(height: 16),
+        SoftTextField(
+          controller: _confirmPasswordController,
+          hintText: 'Confirm Password',
+          prefixIcon: Icons.lock_reset_rounded,
+          obscureText: _obscureConfirmPassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              color: AuthTheme.hintColor,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscureConfirmPassword = !_obscureConfirmPassword;
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PrimarySoftButton(
+          title: "Sign Up",
+          onPressed: () {},
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            const Expanded(child: Divider(color: Colors.black12)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                "Or",
+                style: TextStyle(
+                  color: AuthTheme.hintColor, 
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Expanded(child: Divider(color: Colors.black12)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        SocialAuthButton(
+          title: "Sign Up with Google",
+          onPressed: () {},
+          icon: Image.network(
+            'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+            height: 24,
+            errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata_rounded, color: Colors.blue, size: 32),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RegisterHeader extends StatelessWidget {
+  const _RegisterHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const LiquidGlassLogo(),
+        const SizedBox(height: 16),
+        const Text(
+          "Create Account",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: AuthTheme.primaryAccent,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "Join the community",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: AuthTheme.hintColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RegisterFooter extends StatelessWidget {
+  const _RegisterFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          "Already have an account? ",
+          style: TextStyle(color: AuthTheme.hintColor, fontWeight: FontWeight.w500),
+        ),
+        GestureDetector(
+          onTap: () {
+            Navigator.pop(context); // typically pop back to login
+          },
+          child: const Text(
+            "Sign In",
+            style: TextStyle(
+              color: AuthTheme.primaryAccent,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

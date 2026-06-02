@@ -6,6 +6,8 @@ import 'core/router.dart';
 import 'core/theme.dart';
 import 'features/location/repositories/geolocator_location_repository.dart';
 import 'firebase_options.dart';
+import 'smart_home/home_screen.dart';
+import 'smart_home/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,10 +22,10 @@ class WeatherApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Weather Tracking',
-      theme: AppTheme.light,
-      routerConfig: router,
+    return MaterialApp(
+      title: 'Smart Home',
+      theme: SmartHomeTheme.themeData,
+      home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
